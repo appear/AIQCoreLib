@@ -260,8 +260,9 @@ AIQSession *currentSession;
                 [self authorizeManager];
 
                 _isOpen = YES;
-                
-                [self storeSessionInfo];
+
+                [self storeProperties];
+                currentSession = self;
 
                 [[NSNotificationCenter defaultCenter] postNotificationName:AIQDidOpenSessionNotification object:self];
                 
@@ -488,12 +489,6 @@ AIQSession *currentSession;
 
 - (void)authorizeManager {
     [_manager.requestSerializer setValue:[NSString stringWithFormat:@"Bearer %@", _properties[kAIQSessionAccessToken]] forHTTPHeaderField:@"Authorization"];
-}
-
-- (void)storeSessionInfo {
-    [self storeProperties];
-    
-    currentSession = self;
 }
 
 - (void)removeSessionInfo {
