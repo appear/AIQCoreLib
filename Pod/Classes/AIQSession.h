@@ -1,284 +1,473 @@
-/*
- The MIT License (MIT)
-
- Copyright (c) 2015 Appear Networks AB
-
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
- */
-
 #ifndef AIQCoreLib_AIQSession_h
 #define AIQCoreLib_AIQSession_h
 
 #import <Foundation/Foundation.h>
 
-@class AIQDataStore;
-@class AIQSynchronization;
+#define AIQ_DEPRECATED __attribute__((deprecated))
 
-/**
- Notifies that a session has been opened. There can be only one session opened at a time.
+/*!
+ @header AIQAuthentication.h
+ @author Marcin Lukow
+ @copyright 2012 Appear Networks Systems AB
+ @updated 2014-03-20
+ @brief AIQAuthentication module which can be used to authenticate user credentials against the Appear backend.
+ @version 1.0.4
  */
-EXTERN_API(NSString *) const AIQDidOpenSessionNotification;
 
-/**
- Notifies that a session has been closed. And all subsequent calls made using any other AIQ
- module will fail.
- */
-EXTERN_API(NSString *) const AIQDidCloseSessionNotification;
-
-/**
- Default session request timeout in seconds.
- */
-EXTERN_API(NSTimeInterval) const AIQDefaultSessionRequestTimeout;
-
-/**
- Session key that can be used to retrieve the information about a user logged in for the
- current session. Will not be nil.
+/** Error code for invalid username/password.
  
- @see kAIQUserEmail
- @see kAIQUserFullName
- @see kAIQUserGroups
- @see kAIQUserName
- @see kAIQUserPermissions
- @see kAIQUserProfile
- @see kAIQUserRoles
- */
-EXTERN_API(NSString *) const kAIQUserInfo;
-
-/**
- Key that can be used to retrieve the email address string from the user information stored within
- a session. May be nil.
+ This error code is used for NSErrors raised when given credentials are invalid.
  
- @see kAIQUserInfo
+ @since 1.0.4
+ @see session:openDidFailWithError:
  */
-EXTERN_API(NSString *) const kAIQUserEmail;
+EXTERN_API(NSInteger) const AIQSessionCredentialsError;
 
-/**
- Key that can be used to retrieve the full name string from the user information stored within a
- session. May be nil.
+/** Error code for unavailable backend.
  
- @see kAIQUserInfo
+ This error code is used for NSErrors raised when the backend is unavailable.
+ 
+ @since 1.0.4
+ @see session:openDidFailWithError:
  */
-EXTERN_API(NSString *) const kAIQUserFullName;
+EXTERN_API(NSInteger) const AIQSessionBackendUnavailableError;
 
-/**
- Key that can be used to retrieve an array of groups to which the current user belongs from
- the user information stored within a session. Will not be nil, may be empty.
-
- @see kAIQUserInfo
+/** Timeout interval for authentication process.
+ 
+ This timeout interval is used for making authentication requests to the backend under weak connectivity
+ circumstances. This is the default value which is used when the AIQSession module was initialized without
+ specifying the custom timeout interval.
+ 
+ @since 1.0.4
  */
-EXTERN_API(NSString *) const kAIQUserGroups;
+EXTERN_API(NSTimeInterval) const AIQSessionDefaultTimeoutInterval;
 
-/**
- Key that can be used to retrieve the username string from the user information stored within a
- session. Will not be nil.
+EXTERN_API(NSString *) const kAIQOrganizationName;
 
- @see kAIQUserInfo
+/** User info key for user profile information.
+ 
+ This key is used to store the dictionary containing the full user profile information returned by the backend after
+ the successful authentication. It can be used to retrieve the user profile form the User Info map passed to the
+ delegate.
+ 
+ @since 1.0.4
+ @see propertyForName:
+ */
+EXTERN_API(NSString *) const kAIQUser;
+
+/** User info key for connection status code.
+ 
+ This key is used to store status code that is returned by the backend after failed authentication. It can
+ be used to retrieve the status code from the User Info map passed to the delegate through the NSError instance.
+ 
+ @since 1.0.4
+ @see session:openDidFailWithError:
+ */
+EXTERN_API(NSString *) const kAIQStatusCode;
+
+/** User info key for user identifier.
+ 
+ This key can be used to retrieve the user identifier from the user profile dictionary.
+ 
+ @since 1.0.4
+ */
+EXTERN_API(NSString *) const kAIQUserId;
+
+/** User info key for user name.
+ 
+ This key can be used to retrieve the user name from the user profile dictionary.
+ 
+ @since 1.0.4
  */
 EXTERN_API(NSString *) const kAIQUserName;
 
-/**
- Key that can be used to retrieve an array of permissions granted to the current user from the
- user information stored within a session. Will not be nil, may be empty.
-
- @see kAIQUserInfo
+/** User info key for full user name.
+ 
+ This key can be used to retrieve the full user name from the user profile dictionary.
+ 
+ @warning This value is optional and may not be present in the user profile dictionary.
+ 
+ @since 1.0.4
  */
-EXTERN_API(NSString *) const kAIQUserPermissions;
+EXTERN_API(NSString *) const kAIQUserFullName;
 
-/**
- Key that can be used to retrieve a dictionary with user profile from the user information stored
- within a session. Will not be nil, may be empty.
-
- @see kAIQUserInfo
+/** User info key for user profile details.
+ 
+ This key can be used to retrieve the dictionary containing additional user details from the user profile dictionary.
+ 
+ @since 1.0.4
  */
 EXTERN_API(NSString *) const kAIQUserProfile;
 
-/**
- Key that can be used to retrieve an array of roles assigned to the current user from the user 
- information stored within a session. Will not be nil, may be empty.
+/** User info key for user email.
+ 
+ This key can be used to retrieve the user email from the user profile dictionary.
+ 
+ @warning This value is optional and may not be present in the user profile dictionary.
+ 
+ @since 1.0.4
+ */
+EXTERN_API(NSString *) const kAIQUserEmail;
 
- @see kAIQUserInfo
+/** User info key for user roles.
+ 
+ This key can be used to retrieve the array of user roles from the user profile dictionary.
+ 
+ @since 1.0.4
  */
 EXTERN_API(NSString *) const kAIQUserRoles;
 
-/**
- A class that allows to log in to the Appear Mobility Platform and retrieve all the necessary
- information about the logged in user. It uses a custom implementation of the OAuth2 protocol to
- authenticate and authorize within the Cloud.
+/** User info key for user groups.
+ 
+ This key can be used to retrieve the array of user groups from the user profile dictionary.
+ 
+ @since 1.0.4
  */
+EXTERN_API(NSString *) const kAIQUserGroups;
+
+/** User info key for user permissions.
+ 
+ This key can be used to retrieve the array of user permissions from the user profile dictionary.
+ 
+ @since 1.0.4
+ */
+EXTERN_API(NSString *) const kAIQUserPermissions;
+
+EXTERN_API(NSString *) const AIQSessionStatusCodeKey;
+
+@class AIQContext;
+@class AIQDataStore;
+@class AIQDirectCall;
+@class AIQLaunchableStore;
+@class AIQLocalStorage;
+@class AIQMessaging;
+@class AIQSession;
+@class AIQSynchronization;
+
+/** Delegate for the AIQSession module.
+ 
+ This delegate can be used to receive notifications about the outcome of the authentication process.
+ 
+ @since 1.0.4
+ */
+@protocol AIQSessionDelegate <NSObject>
+
+/** Notifies that the session has been opened.
+ 
+ This method is called when the session has been successfully opened and is ready to use.
+ 
+ @param session Session which has been opened. Will not be nil.
+ 
+ @since 1.0.4
+ @see openForUser:withPassword:inOrganization:baseURL:error:
+ @see openForUser:withPassword:andUserInfo:inOrganization:baseURL:error:
+ */
+- (void)sessionDidOpen:(AIQSession *)session;
+
+/** Notifies that the session has failed to open.
+ 
+ This method is called when the session has failed to open and cannot be used without prior reopening.
+ 
+ @param session Session which has failed to open. Will not be nil.
+ @param error Will store the cause of failure. Will not be nil.
+ 
+ @since 1.0.4
+ @see openForUser:withPassword:inOrganization:baseURL:error:
+ @see openForUser:withPassword:andUserInfo:inOrganization:baseURL:error:
+ */
+- (void)session:(AIQSession *)session openDidFailWithError:(NSError *)error;
+
+/** Notifies that the session has been successfully closed.
+ 
+ This method is called when the session has been closed and is no longer usable without prior reopening.
+ Note that this method is called independependently of the logout request being send to the mobility
+ platform.
+ 
+ @param session Session which has been closed. Will not be nil.
+ 
+ @since 1.0.4
+ @see close:
+ */
+- (void)sessionDidClose:(AIQSession *)session;
+
+/** Notifies that the session has failed to close.
+ 
+ This method is called when the session has failed to close.
+ 
+ @param session Session which has failed to close and is still usable. Will not be nil.
+ @param error Will store the cause of failure. Will not be nil.
+ 
+ @since 1.0.4
+ @see close:
+ */
+- (void)session:(AIQSession *)session closeDidFailWithError:(NSError *)error;
+
+@end
+
 @interface AIQSession : NSObject
 
-/**
- An object representing the currently logged in user. Will be nil in case no session is opened.
- 
- @return Currently opened session instance or nil when no session is opened.
- */
-+ (instancetype)currentSession;
+@property (nonatomic, retain) id<AIQSessionDelegate> delegate;
+@property (nonatomic, assign) NSTimeInterval timeoutInterval;
+@property (nonatomic, retain) NSString *deviceToken;
 
-/**
- Tells whether it is possible to resume the last opened session.
+/** Returns currently open session.
  
- @return YES when it is possible to resume the last opened session or NO in case there is no saved
- session information or a session is already open.
+ This method can be used to retrieve a session which is currently opened. If no session is open,
+ this method will return nil.
+ 
+ @return AIQSession instance if it is opened, nil otherwise.
+ 
+ @since 1.0.4
+ */
++ (AIQSession *)currentSession;
+
+/** Tells whether it is possible to resume a suspended session.
+ 
+ This method can be used to check whether it is possible to resume a session that hasn't been closed
+ but is not open (in case of closing the application without logging out).
+ 
+ @return YES if a session can be resumed, NO otherwise.
+ 
+ @since 1.0.4
+ @see resume:
  */
 + (BOOL)canResume;
 
-/**
- Resumes the last opened session.
+/** Resumes a suspended session.
  
- @param error Will store the cause of an error in case when resuming fails. May be nil.
- @return Resumed session instance or nil when resuming has failed, in which case the error argument
- will store the cause of the error.
+ This method can be used to resume a suspended session.
+ 
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return Resumed AIQSession module or nil if it has been impossible to resume a session, in which
+ case the error parameter will contain the reason of failure.
+ 
+ @since 1.0.4
+ @see canResume
  */
-+ (instancetype)resume:(NSError **)error;
++ (AIQSession *)resume:(NSError **)error;
 
-/**
- Creates a new session.
+/** Opens a new session.
  
- @param url URL to the mobility platform. Must not be nil.
- @return New session instance or nil in case the specified URL is invalid.
+ This method can be used to open a new session for given user. Note that it is impossible to open an
+ already opened session, doing so will result in error.
  
- @note Session created using the method is closed by default. You have to authenticate in order
- to be able to interact with the API.
+ @param username The name of the user for which to open a session. Must not be nil and must be recognized
+ by the mobility platform as belonging to given organization.
+ @param password Password of the user for which to open a session. Must not be nil.
+ @param organization The name of the organization to which the user belongs. Must not be nil and must be
+ recognized by the mobility platform.
+ @param baseURL Base URL of the mobility platform. Must not be nil.
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return Opened AIQSession module or nil if initialization failed, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
+ @see close:
+ @see isOpen
  */
-+ (instancetype)sessionWithBaseURL:(NSURL *)url;
-
-/**
- Returns the timeout value for the authentication requests.
- 
- @return Timeout interval in seconds.
- */
-- (NSTimeInterval)timeout;
-
-/**
- Sets the new timeout value for the authentication requests.
- 
- @param timeout New timeout value. Value 0 disables the timeout.
- */
-- (void)setTimeout:(NSTimeInterval)timeout;
-
-/**
- Logs into the Appear Mobility Platform.
- 
- @param username Name of the user to authenticate. Must not be nil and must be registered in your
- organization.
- @param password Password of the user to authenticate. Must not be nil. Will be validated by the
- Mobility Platform.
- @param organization Organization registered in the Mobility Platform. Must not be nil and must
- exist in the Mobility Platform.
- @param success Callback executed when the session has successfully opened. May be nil.
- @param failure Callback executed when the session has failed to open. Will receive an instance of
- NSError storing the cause of the error as a sole argument. May be nil.
- 
- @see AIQDidOpenSessionNotification
- 
- @note This call will fail if the session is already open.
- */
-- (void)openForUser:(NSString *)username
-           password:(NSString *)password
+- (BOOL)openForUser:(NSString *)username
+       withPassword:(NSString *)password
      inOrganization:(NSString *)organization
-            success:(void (^)(void))success
-            failure:(void (^)(NSError *error))failure;
+            baseURL:(NSURL *)baseURL
+              error:(NSError **)error;
 
-/**
- Logs into the Appear Mobility Platform.
-
- @param username Name of the user to authenticate. Must not be nil and must be registered in your
- organization.
- @param password Password of the user to authenticate. Must not be nil. Will be validated by the
- Mobility Platform.
- @param info Custom parameters to be sent together with the authentication request to the Mobility
- Platform. May be nil or empty.
- @param organization Organization registered in the Mobility Platform. Must not be nil and must
- exist in the Mobility Platform.
- @param success Callback executed when the session has successfully opened. May be nil.
- @param failure Callback executed when the session has failed to open. Will receive an instance of
- NSError storing the cause of the error as a sole argument. May be nil.
-
- @see AIQDidOpenSessionNotification
-
- @note This call will fail if the session is already open.
+/** Opens a new session.
+ 
+ This method can be used to open a new session for given user. Note that it is impossible to open an
+ already opened session. Doing so will result in error.
+ 
+ @param username The name of the user for which to open a session. Must not be nil and must be recognized
+ by the mobility platform as belonging to given organization.
+ @param password Password of the user for which to open a session. Must not be nil.
+ @param userInfo Additional information to be passed to the integration adapter. All properties stored
+ in this map will be prefixed with x- prefix. May be nil.
+ @param organization The name of the organization to which the user belongs. Must not be nil and must be
+ recognized by the mobility platform.
+ @param baseURL Base URL of the mobility platform. Must not be nil.
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return Opened AIQSession module or nil if initialization failed, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
+ @see close:
+ @see isOpen
  */
-- (void)openForUser:(NSString *)username
-           password:(NSString *)password
-               info:(NSDictionary *)info
+- (BOOL)openForUser:(NSString *)username
+       withPassword:(NSString *)password
+        andUserInfo:(NSDictionary *)userInfo
      inOrganization:(NSString *)organization
-            success:(void (^)(void))success
-            failure:(void (^)(NSError *error))failure;
+            baseURL:(NSURL *)baseURL
+              error:(NSError **)error;
 
-/**
- Closes the session.
+/** Closes the session.
  
- @param success Callback executed when the sessin has successfully closed. May be nil.
- @param failure Callback executed when the session has failed to open. Will receive an instance of
- NSError storing the cause of the error as a sole argument. May be nil.
+ This method can be used to close the session and log out from the mobility platform. Note that it is not
+ possible to close a session which has not been opened, doing so will result in error.
  
- @see AIQDidCloseSessionNotification
-
- @note This call will fail if the session is not open.
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return YES if the session has been successfully closed, NO otherwise, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
+ @see openForUser:withPassword:inOrganization:baseURL:error:
+ @see openForUser:withPassword:andUserInfo:inOrganization:baseURL:error:
+ @see isOpen
  */
-- (void)close:(void (^)(void))success failure:(void (^)(NSError *error))failure;
+- (BOOL)close:(NSError **)error;
 
-/**
- Cancells the ongoing authentication request. Does nothing if the session is not authenticating.
+/** Tells whether the session is opening.
+ 
+ This method can be used to check whether the session is opening.
+ 
+ @return YES if the session is opening, NO otherwise.
+ 
+ @since 1.0.4
+ @see openForUser:withPassword:inOrganization:baseURL:error:
+ @see openForUser:withPassword:andUserInfo:inOrganization:baseURL:error:
+ @see isOpen
  */
-- (void)cancel;
+- (BOOL)isOpening;
 
-/**
- Tells whether the session is open.
+/** Tells whether the session is open.
+ 
+ This method can be used to check whether the session is open.
  
  @return YES if the session is open, NO otherwise.
+ 
+ @since 1.0.4
+ @see openForUser:withPassword:inOrganization:baseURL:error:
+ @see openForUser:withPassword:andUserInfo:inOrganization:baseURL:error:
+ @see close:
  */
 - (BOOL)isOpen;
 
-/**
- Returns a session property identified by given key.
+/** Cancells the process of opening a session. Note that it is impossible to cancel a closed or already opened
+ session, doing so will result in error.
  
- @param key Session key to return a value for. Must not be nil.
- @return Property value or nil if not found or the session is not open.
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return YES if the process has been successfully cancelled, NO otherwise, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
+ @see openForUser:withPassword:inOrganization:baseURL:error:
+ @see openForUser:withPassword:andUserInfo:inOrganization:baseURL:error:
  */
-- (id)objectForKeyedSubscript:(NSString *)key;
+- (BOOL)cancel:(NSError **)error;
 
-/**
- Sets new value for a session property identified by given key.
+/** Returns the session identifier.
  
- @param obj New value of the property to set. If nil, the property will be removed from the session.
- @param key Session key to return a value for. Must not be nil.
+ This method can be used to return the session identifier. Note that only open sessions have identifiers assigned.
  
- @note The call will fail if the session is not open.
+ @return Session identifier or nil if the session is not opened.
+ 
+ @since 1.0.4
  */
-- (void)setObject:(id)obj forKeyedSubscript:(id<NSCopying>)key;
+- (NSString *)sessionId;
 
-/**
- Returns a data store which allows accesing business data belonging to a given solution.
+/** Returns a session property for given name.
  
- @param solution Solution identifier to create a data store for. Must not be nil.
- @return AIQDataStore instance or nil if given solution identifier was invalid or the session is
- not open.
+ This method can be used to retrieve session properties. Note that it is impossible to retireve properties of a session
+ which is closed or not yet opened.
+ 
+ @param name The name of the property to retrieve. Must not be nil.
+ @return Value of a property for given name. May be nil if given name does not exist within the session of if the session
+ is not open.
+ 
+ @since 1.0.4
  */
-- (AIQDataStore *)dataStoreForSolution:(NSString *)solution;
+- (id)propertyForName:(NSString *)name;
 
-/**
- Returns a business data synchronizer for the current session.
+- (void)setProperty:(id)property forName:(NSString *)name;
+
+- (BOOL)hasRole:(NSString *)role;
+
+- (BOOL)hasPermission:(NSString *)permission;
+
+- (BOOL)solutions:(void (^)(NSString *solution, NSError **error))processor error:(NSError **)error;
+
+/** Returns an instance of AIQContext module.
  
- @return AIQSynchronization instance or nil if the session is not open.
+ This method can be used to retrieve an instance of AIQContext module connected to the session.
+ 
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return AIQContext instance or nil if the module could not be initialized, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
  */
-- (AIQSynchronization *)synchronization;
+- (AIQContext *)context:(NSError **)error;
+
+/** Returns an instance of AIQDataStore module.
+ 
+ This method can be used to retrieve an instance of AIQDataStore module connected to the session.
+ 
+ @param solution Identifier of a solution for which to return the data store. May be nil, in which case it defaults
+ to a default solution identifier. If specified, must identify a valid solution.
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return AIQDataStore instance or nil if the module could not be initialized, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
+ */
+- (AIQDataStore *)dataStoreForSolution:(NSString *)solution error:(NSError **)error;
+
+/** Returns an instance of AIQDirectCall module for given endpoint.
+ 
+ This method can be used to retrieve an instance of AIQDirectCall module connected to the session.
+ 
+ @param solution Identifier of a solution for which to return the data store. May be nil, in which case it defaults
+ to a default solution identifier. If specified, must identify a valid solution.
+ @param endpoint The name of the endpoint for which to create an instance of AIQDirectCall module. Must not be nil
+ and must be recognized by the mobility platform.
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return AIQDirectCall instance or nil if the module could not be initialized, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
+ */
+- (AIQDirectCall *)directCallForSolution:(NSString *)solution endpoint:(NSString *)endpoint error:(NSError **)error;
+
+- (AIQLaunchableStore *)launchableStore:(NSError **)error;
+
+/** Returns an instance of AIQLocalStorage module.
+ 
+ This method can be used to retrieve an instance of AIQLocalStorage module connected to the session.
+ 
+ @param solution Identifier of a solution for which to return the data store. May be nil, in which case it defaults
+ to a default solution identifier. If specified, must identify a valid solution.
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return AIQLocalStorage instance or nil if the module could not be initialized, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
+ */
+- (AIQLocalStorage *)localStorageForSolution:(NSString *)solution error:(NSError **)error;
+
+/** Returns an instance of AIQMessaging module.
+ 
+ This method can be used to retrieve an instance of AIQMessaging module connected to the session.
+ 
+ @param solution Identifier of a solution for which to return the data store. May be nil, in which case it defaults
+ to a default solution identifier. If specified, must identify a valid solution.
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return AIQMessaging instance or nil if the module could not be initialized, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
+ */
+- (AIQMessaging *)messagingForSolution:(NSString *)solution error:(NSError **)error;
+
+/** Returns an instance of AIQSynchronization module.
+ 
+ This method can be used to retrieve an instance of AIQSynchronization module connected to the session.
+ 
+ @param error If defined, will store an error in case of any failure. May be nil.
+ @return AIQSynchronization instance or nil if the module could not be initialized, in which case the error parameter will
+ contain the reason of failure.
+ 
+ @since 1.0.4
+ */
+- (AIQSynchronization *)synchronization:(NSError **)error;
 
 @end
 
