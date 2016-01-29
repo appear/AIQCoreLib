@@ -63,11 +63,7 @@
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *folder = [[self.basePath stringByAppendingPathComponent:self.solution] stringByAppendingPathComponent:self.identifier];
     if (! [fileManager fileExistsAtPath:folder]) {
-        if (! [fileManager createDirectoryAtPath:folder withIntermediateDirectories:YES attributes:@{NSFileProtectionKey: NSFileProtectionComplete} error:&error]) {
-            AIQLogCError(1, @"Could not create folder for attachment %@ in document %@: %@", self.attachmentName, self.identifier, error.localizedDescription);
-            [self clean];
-            return;
-        }
+        [fileManager createDirectoryAtPath:folder withIntermediateDirectories:YES attributes:@{NSFileProtectionKey: NSFileProtectionComplete} error:nil];
     }
     
     NSString *path = [[folder stringByAppendingPathComponent:self.attachmentName] stringByAppendingPathExtension:@"tmp"];
@@ -106,7 +102,7 @@
         return NO;
     }
     DownloadOperation *operation = (DownloadOperation *)object;
-    return ([operation.identifier isEqualToString:self.identifier]) && ([operation.attachmentName isEqualToString:self.attachmentName]);
+    return ([operation.solution isEqualToString:self.solution]) && ([operation.identifier isEqualToString:self.identifier]) && ([operation.attachmentName isEqualToString:self.attachmentName]);
 }
 
 #pragma mark - NSURLConnectionDataDelegate

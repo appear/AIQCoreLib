@@ -208,7 +208,6 @@ EXTERN_API(NSString *) const AIQSessionStatusCodeKey;
 
 @property (nonatomic, retain) id<AIQSessionDelegate> delegate;
 @property (nonatomic, assign) NSTimeInterval timeoutInterval;
-@property (nonatomic, retain) NSString *deviceToken;
 
 /** Returns currently open session.
  

@@ -28,7 +28,32 @@
 }
 
 - (void)didCreateDocument:(NSString *)identifier type:(NSString *)type solution:(NSString *)solution {
-    
+    [_pool inDatabase:^(FMDatabase *db) {
+        FMResultSet *rs = [db executeQuery:@"SELECT data FROM documents WHERE solution = ? and identifier = ?", solution, identifier];
+        if (! rs) {
+            AIQLogCError(1, @"Failed to retrieve content for launchable %@: %@", identifier, [db lastError].localizedDescription);
+            return;
+        }
+        
+        if (! [rs next]) {
+            [rs close];
+            AIQLogCError(1, @"Document does not exist for launchable %@", identifier);
+            return;
+        }
+        
+        NSDictionary *document = [[rs dataForColumnIndex:0] JSONObject];
+        [rs close];
+        
+        NSString *name = document[@"name"];
+        if (! name) {
+            name = @"";
+        }
+        NSMutableDictionary *info = [NSMutableDictionary dictionary];
+        info[AIQDocumentIdUserInfoKey] = identifier;
+        info[AIQSolutionUserInfoKey] = solution;
+        info[AIQLaunchableNameUserInfoKey] = name;
+        NOTIFY(AIQDidInstallLaunchableNotification, self, info);
+    }];
 }
 
 - (void)didUpdateDocument:(NSString *)identifier type:(NSString *)type solution:(NSString *)solution {
@@ -177,7 +202,8 @@
 
 - (void)attachmentDidBecomeAvailable:(NSString *)name identifier:(NSString *)identifier type:(NSString *)type solution:(NSString *)solution {
     if ([name isEqualToString:@"content"]) {
-        NSString *path = [[[_basePath stringByAppendingPathComponent:solution] stringByAppendingPathComponent:identifier] stringByAppendingPathComponent:@"content"];
+        NSString *folder = [[_basePath stringByAppendingPathComponent:solution] stringByAppendingPathComponent:identifier];
+        NSString *path = [folder stringByAppendingPathComponent:@"content"];
         __block NSDictionary *document = nil;
         __block AIQAttachmentState state = AIQAttachmentStateUnavailable;
         [_pool inDatabase:^(FMDatabase *db) {
@@ -288,12 +314,15 @@
             return;
         }
         
+        NSString *canaryPath = [appPath stringByAppendingPathComponent:@".aiq_canary"];
+        [fileManager createFileAtPath:canaryPath contents:[NSData data] attributes:@{NSFileProtectionKey: NSFileProtectionComplete}];
+        
         NSMutableDictionary *info = [NSMutableDictionary dictionary];
         info[AIQDocumentIdUserInfoKey] = identifier;
         info[AIQSolutionUserInfoKey] = solution;
         info[AIQLaunchablePathUserInfoKey] = appPath;
         if (state == AIQAttachmentStateAvailable) {
-            NSString *path = [[[_basePath stringByAppendingPathComponent:solution] stringByAppendingPathComponent:identifier] stringByAppendingPathComponent:@"icon"];
+            NSString *path = [folder stringByAppendingPathComponent:@"icon"];
             info[AIQLaunchableIconPathUserInfoKey] = path;
         }
         

@@ -526,16 +526,6 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
     __block NSError *error = nil;
     NSArray *changes = json[@"changes"];
     
-    [_downloadQueue setSuspended:YES];
-    
-    if (! [self queueUnavailableAttachments:&error]) {
-        AIQLogCError(1, @"Failed to queue unavailable attachments: %@", error.localizedDescription);
-        if (_delegate) {
-            [_delegate synchronization:self didFailWithError:error];
-        }
-        return;
-    }
-    
     [_dbQueue inDatabase:^(FMDatabase *db) {
         AIQLogCInfo(1, @"Processing %lu changes", (unsigned long)changes.count);
         
@@ -623,27 +613,20 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
                             error = [AIQError errorWithCode:AIQErrorContainerFault message:[db lastError].localizedDescription];
                             return;
                         }
-                        AIQOperation *operation = [DownloadOperation new];
-                        operation.solution = solution;
-                        operation.identifier = identifier;
-                        operation.type = type;
-                        operation.attachmentName = name;
-                        operation.synchronization = self;
-                        operation.timeout = _attachmentTimeout;
-                        if ([type isEqualToString:@"_launchable"]) {
-                            operation.queuePriority = NSOperationQueuePriorityVeryHigh;
-                        } else if ([type hasPrefix:@"_"]) {
-                            operation.queuePriority = NSOperationQueuePriorityHigh;
-                        }
-                        operation.qualityOfService = NSQualityOfServiceBackground;
-                        //                        if ([_downloadQueue.operations containsObject:operation]) {
-                        //                            for (AIQOperation *existing in _downloadQueue.operations) {
-                        //                                if (([existing.identifier isEqualToString:identifier]) && ([existing.attachmentName isEqualToString:name])) {
-                        //                                    [operation addDependency:existing];
-                        //                                }
-                        //                            }
-                        //                        }
-                        [_downloadQueue addOperation:operation];
+//                        AIQOperation *operation = [DownloadOperation new];
+//                        operation.solution = solution;
+//                        operation.identifier = identifier;
+//                        operation.type = type;
+//                        operation.attachmentName = name;
+//                        operation.synchronization = self;
+//                        operation.timeout = _attachmentTimeout;
+//                        if ([type isEqualToString:@"_launchable"]) {
+//                            operation.queuePriority = NSOperationQueuePriorityVeryHigh;
+//                        } else if ([type hasPrefix:@"_"]) {
+//                            operation.queuePriority = NSOperationQueuePriorityHigh;
+//                        }
+//                        operation.qualityOfService = NSQualityOfServiceBackground;
+//                        [_downloadQueue addOperation:operation];
                         
                         if (oldRevision == 0l) {
                             [[self synchronizerForType:type] didCreateAttachment:name identifier:identifier type:type solution:solution];
@@ -663,9 +646,16 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
         return;
     }
     
-    [_downloadQueue setSuspended:NO];
-    
     [self storeLinks:json[@"links"]];
+    
+    if (! [self queueUnavailableAttachments:&error]) {
+        AIQLogCError(1, @"Failed to queue unavailable attachments: %@", error.localizedDescription);
+        if (_delegate) {
+            [_delegate synchronization:self didFailWithError:error];
+        }
+        return;
+    }
+    
     [self push];
 }
 
@@ -697,7 +687,6 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
 
 - (void)handlePush:(NSDictionary *)json {
     NSArray *results = json[@"results"];
-    NSLog(@"%@", results);
     AIQLogCInfo(1, @"Processing %lu results", (unsigned long)results.count);
     
     __block NSError *error = nil;
@@ -839,6 +828,7 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
                  usingChange:(NSDictionary *)change
                 intoDatabase:(FMDatabase *)db
                        error:(NSError *__autoreleasing *)error {
+    AIQLogCInfo(1, @"Will insert document %@ (%@) in solution %@", identifier, type, solution);
     if (error) {
         *error = nil;
     }
@@ -870,6 +860,7 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
     }
     
     [[self synchronizerForType:type] didCreateDocument:identifier type:type solution:solution];
+    AIQLogCInfo(1, @"Did insert document %@ (%@) in solution %@", identifier, type, solution);
     
     return YES;
 }
@@ -881,6 +872,7 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
                  fileManager:(NSFileManager *)fileManager
                   inDatabase:(FMDatabase *)db
                        error:(NSError *__autoreleasing *)error {
+    AIQLogCInfo(1, @"Will update document %@ (%@) in solution %@", identifier, type, solution);
     if (error) {
         *error = nil;
     }
@@ -959,6 +951,7 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
     }
     
     [[self synchronizerForType:type] didUpdateDocument:identifier type:type solution:solution];
+    AIQLogCInfo(1, @"Did update document %@ (%@) in solution %@", identifier, type, solution);
     
     return YES;
 }
@@ -999,6 +992,7 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
                  fileManager:(NSFileManager *)fileManager
                 fromDatabase:(FMDatabase *)db
                        error:(NSError *__autoreleasing *)error {
+    AIQLogCInfo(1, @"Will delete document %@ (%@) from solution %@", identifier, type, solution);
     if (error) {
         *error = nil;
     }
@@ -1028,6 +1022,7 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
     }
     
     [[self synchronizerForType:type] didDeleteDocument:identifier type:type solution:solution];
+    AIQLogCInfo(1, @"Did delete document %@ (%@) from solution %@", identifier, type, solution);
     
     return YES;
 }
@@ -1099,6 +1094,8 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
                 operation.queuePriority = NSOperationQueuePriorityVeryHigh;
             } else if ([type hasPrefix:@"_"]) {
                 operation.queuePriority = NSOperationQueuePriorityHigh;
+            } else {
+                operation.queuePriority = NSOperationQueuePriorityLow;
             }
             operation.qualityOfService = NSQualityOfServiceBackground;
             [_downloadQueue addOperation:operation];
@@ -1106,12 +1103,12 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
         [rs close];
     }];
     
+    [_downloadQueue setSuspended:NO];
+    
     if (localError) {
         *error = localError;
         return NO;
     }
-    
-    [_downloadQueue setSuspended:NO];
     
     return YES;
 }
@@ -1150,13 +1147,13 @@ NSString *const AIQAttachmentErrorNotification = @"AIQAttachmentErrorNotificatio
         [rs close];
     }];
     
+    [_uploadQueue setSuspended:NO];
+    
     if (error) {
         AIQLogCError(1, @"Could not retrieve unsynchronized attachments: %@", error.localizedDescription);
         if (_delegate) {
             [_delegate synchronization:self didFailWithError:error];
         }
-    } else {
-        [_uploadQueue setSuspended:NO];
     }
 }
 

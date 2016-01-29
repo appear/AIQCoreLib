@@ -72,6 +72,7 @@ NSString *const AIQLaunchableIconPathUserInfoKey = @"AIQLaunchableIconPathUserIn
             NSString *path = [[[_basePath stringByAppendingPathComponent:solution] stringByAppendingPathComponent:identifier] stringByAppendingPathComponent:name];
             NSString *appPath = [path stringByAppendingPathExtension:@"webapp"];
             NSString *tmpPath = [path stringByAppendingPathExtension:@"unzipped"];
+            NSString *canaryPath = [appPath stringByAppendingPathComponent:@".aiq_canary"];
             
             if ([fileManager fileExistsAtPath:tmpPath]) {
                 if (! [fileManager removeItemAtPath:tmpPath error:&localError]) {
@@ -81,6 +82,10 @@ NSString *const AIQLaunchableIconPathUserInfoKey = @"AIQLaunchableIconPathUserIn
                     success = NO;
                     return;
                 }
+            }
+            
+            if ([fileManager fileExistsAtPath:canaryPath]) {
+                continue;
             }
             
             ZipArchive *zip = [ZipArchive new];
@@ -155,6 +160,8 @@ NSString *const AIQLaunchableIconPathUserInfoKey = @"AIQLaunchableIconPathUserIn
                 success = NO;
                 break;
             }
+            
+            [fileManager createFileAtPath:canaryPath contents:[NSData data] attributes:@{NSFileProtectionKey: NSFileProtectionComplete}];
         }
         
         [rs close];

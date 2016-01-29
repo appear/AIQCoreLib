@@ -165,6 +165,7 @@ static AIQSession *currentSession = nil;
         [result setValue:sessionKey forKey:@"sessionKey"];
         [result setValue:[root[@"sessions"][sessionKey] mutableCopy] forKey:@"session"];
         [result setValue:@YES forKey:@"sessionOpened"];
+        
         if (! [result prepare:error]) {
             return nil;
         }
@@ -782,20 +783,21 @@ static AIQSession *currentSession = nil;
     root[@"sessions"] = sessions;
     [defaults setValue:root forKey:@"AIQCoreLib"];
     [defaults synchronize];
+    NSString *deviceToken = [defaults valueForKey:@"AIQDeviceToken"];
     
-    if ((_session[@"push"]) && (_deviceToken) && (! _pushNotificationsFailed) && (! _registeredForPushNotifications) && (! _connection)) {
-        [self registerForPushNotifications];
+    if ((_session[@"push"]) && (deviceToken) && (! _pushNotificationsFailed) && (! _registeredForPushNotifications) && (! _connection)) {
+        [self registerForPushNotifications:deviceToken];
     }
 }
 
-- (void)registerForPushNotifications {
+- (void)registerForPushNotifications:(NSString *)deviceToken {
     AIQLogCInfo(1, @"Registering for push notifications");
     
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:_session[@"push"]]
                                                            cachePolicy:NSURLRequestReloadIgnoringCacheData
                                                        timeoutInterval:_timeoutInterval];
     request.HTTPMethod = @"PUT";
-    request.HTTPBody = [@{@"service": @"apn", @"token": _deviceToken} JSONData];
+    request.HTTPBody = [@{@"service": @"apn", @"token": deviceToken} JSONData];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
     [request setValue:[NSString stringWithFormat:@"BEARER %@", _session[@"accessToken"]] forHTTPHeaderField:@"Authorization"];
     
