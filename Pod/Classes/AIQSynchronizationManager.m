@@ -304,6 +304,8 @@ NSUInteger const AIQSynchronizationQueueSize = 1;
     if (_isRunning) {
         AIQLogCInfo(1, @"Resuming");
         _isPaused = NO;
+        [self scheduleNextSynchronizationTo:0.0f];
+        /*
         NSTimeInterval elapsedTime = [[NSDate date] timeIntervalSince1970] - _lastSynchronizationTimestamp;
         if (elapsedTime > _currentSynchronizationInterval) {
             AIQLogCInfo(1, @"Pause too long, forcing synchronization");
@@ -312,6 +314,7 @@ NSUInteger const AIQSynchronizationQueueSize = 1;
             AIQLogCInfo(1, @"%.2f seconds left until synchronization", _currentSynchronizationInterval - elapsedTime);
             [self scheduleNextSynchronizationTo:_currentSynchronizationInterval - elapsedTime];
         }
+         */
     }
 }
 
