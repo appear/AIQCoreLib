@@ -5,11 +5,11 @@
 
 /*!
  @header AIQDataStore.h
- @author Marcin Lukow
+ @author Marcin Lukow, Simon Jarbrant
  @copyright 2014 Appear Networks Systems AB
- @updated 2014-08-11
+ @updated 2016-04-05
  @brief Data Store module can be used to access business documents stored in the document storage.
- @version 1.3.0
+ @version 1.3.1
  */
 
 @class AIQDataStore;
@@ -467,8 +467,17 @@ EXTERN_API(NSString *) const kAIQAttachmentRejectionReason;
  parameter will contain the reason of failure.
  @since 1.0.0
  */
-
 - (NSData *)dataForAttachmentWithName:(NSString *)name fromDocumentWithId:(NSString *)identifier error:(NSError **)error;
+
+/** Retrieves the data for given file path.
+
+ This method can be used to retrieve the data for the given file path.
+
+ @param path Path to the attachment file on local storage. Must not be nil and must exist in the data store
+ @return Data for given attachment or nil if the data does not exist
+ @since 1.3.1
+ */
+- (NSData *)dataForAttachmentAtPath:(NSString *)path;
 
 - (BOOL)hasUnsynchronizedDocumentsOfType:(NSString *)type;
 

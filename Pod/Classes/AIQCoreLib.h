@@ -3,11 +3,11 @@
 
 /*!
  @header AIQCoreLib.h
- @author Marcin Lukow
+ @author Marcin Lukow, Simon Jarbrant
  @copyright 2013 Appear Networks Systems AB
- @updated 2014-04-01
+ @updated 2016-04-05
  @brief Convenience header including headers from all modules of the AIQ core library.
- @version 1.0.4
+ @version 1.5.3
  */
 
 #import <AIQCoreLib/AIQContext.h>
