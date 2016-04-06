@@ -5,11 +5,11 @@
 
 /*!
  @header AIQLocation.h
- @author Marcin Lukow
+ @author Marcin Lukow, Simon Jarbrant
  @copyright 2012 Appear Networks Systems AB
- @updated 2013-08-12
+ @updated 2016-04-06
  @brief AIQLocation module can be used to distribute location events through NSNotificationCenter.
- @version 1.0.0
+ @version 1.1.0
  */
 
 @class CLLocation;

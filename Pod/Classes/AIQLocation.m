@@ -24,7 +24,7 @@ NSString *const AIQOldLocationKey = @"AIQOldLocation";
     static AIQLocation *instance = nil;
     @synchronized(self) {
         if (! instance) {
-            instance = [[AIQLocation alloc] init];
+            instance = [AIQLocation new];
         }
     }
     return instance;
@@ -33,7 +33,7 @@ NSString *const AIQOldLocationKey = @"AIQOldLocation";
 - (id)init {
     self = [super init];
     if (self) {
-        _locationManager = [[CLLocationManager alloc] init];
+        _locationManager = [CLLocationManager new];
         _locationManager.delegate = self;
     }
     return self;
@@ -43,8 +43,8 @@ NSString *const AIQOldLocationKey = @"AIQOldLocation";
     if (_monitoringSignificantLocationChanges == 0) {
         AIQLogCInfo(1, @"Starting location monitoring");
         
-        if ([_locationManager respondsToSelector:@selector(requestAlwaysAuthorization)]) {
-            [_locationManager requestAlwaysAuthorization];
+        if ([_locationManager respondsToSelector:@selector(requestWhenInUseAuthorization)]) {
+            [_locationManager requestWhenInUseAuthorization];
         } else {
             [_locationManager startMonitoringSignificantLocationChanges];
         }
@@ -94,19 +94,18 @@ NSString *const AIQOldLocationKey = @"AIQOldLocation";
 #pragma mark - CLLocationManagerDelegate
 
 - (void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
-    if (status == kCLAuthorizationStatusAuthorizedAlways) {
+    if (status == kCLAuthorizationStatusAuthorizedWhenInUse) {
+        AIQLogCInfo(1, @"Location access authorized for when app is in use");
         [manager startMonitoringSignificantLocationChanges];
     }
 }
 
-- (void)locationManager:(CLLocationManager *)manager
-     didUpdateLocations:(NSArray *)locations {
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations {
     AIQLogCInfo(1, @"Location changed to %@", locations.lastObject);
     NOTIFY(AIQLocationUpdatedEvent, self, @{AIQNewLocationKey: locations.lastObject});
 }
 
-- (void)locationManager:(CLLocationManager *)manager
-       didFailWithError:(NSError *)error {
+- (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error {
     AIQLogCWarn(1, @"Location failed: %@", error.localizedDescription);
     NOTIFY(AIQLocationFailedEvent, self, nil);
 }
