@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'AIQCoreLib'
-  s.version          = '1.5.2'
+  s.version          = '1.5.3'
   s.summary          = "Allows access to AppearIQ cloud services."
   s.homepage         = "https://github.com/appear/AIQCoreLib"
   s.license          = 'MIT'

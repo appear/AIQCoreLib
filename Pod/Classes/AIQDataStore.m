@@ -1,4 +1,5 @@
 #import <FMDB/FMDB.h>
+#import <AssetsLibrary/AssetsLibrary.h>
 
 #import "AIQDataStore.h"
 #import "AIQError.h"
@@ -1046,6 +1047,83 @@ NSString *const kAIQAttachmentRejectionReason = @"reason";
     }
     
     return [_fileManager contentsAtPath:path];
+}
+
+- (NSData *)dataForAttachmentAtPath:(NSString *)path {
+    NSFileManager* fileManager = [NSFileManager defaultManager];
+    NSData *data;
+
+    if ([path hasPrefix:@"file:///"]) {
+        NSString *absPath = [path stringByReplacingOccurrencesOfString:@"file://"
+                                                            withString:@""];
+
+        if (![fileManager fileExistsAtPath:absPath]) {
+            NSLog(@"File not found: %@", absPath);
+            return nil;
+        }
+
+        data = [fileManager contentsAtPath:absPath];
+
+    } else if ([path hasPrefix:@"res:"]) {
+        NSBundle* mainBundle = [NSBundle mainBundle];
+        NSString* bundlePath = [[mainBundle bundlePath] stringByAppendingString:@"/"];
+
+        NSString *absPath = [path pathComponents].lastObject;
+        absPath = [bundlePath stringByAppendingString:absPath];
+
+        if (![fileManager fileExistsAtPath:absPath]) {
+            NSLog(@"File not found: %@", absPath);
+            return nil;
+        }
+        
+        data = [fileManager contentsAtPath:absPath];
+
+    } else if ([path hasPrefix:@"file://"]) {
+        NSBundle* mainBundle = [NSBundle mainBundle];
+        NSString* bundlePath = [[mainBundle bundlePath]
+                                stringByAppendingString:@"/"];
+
+        NSString *absPath = [path stringByReplacingOccurrencesOfString:@"file:/"
+                                                            withString:@"www"];
+
+        absPath = [bundlePath stringByAppendingString:absPath];
+
+        if (![fileManager fileExistsAtPath:absPath]) {
+            NSLog(@"File not found: %@", absPath);
+        }
+        
+        data = [fileManager contentsAtPath:absPath];
+
+    } else if ([path hasPrefix:@"assets-library://"]) {
+        dispatch_group_t group = dispatch_group_create();
+        dispatch_group_enter(group);
+        __block NSData *data = nil;
+
+        ALAssetsLibrary *assetLibrary = [ALAssetsLibrary new];
+        [assetLibrary assetForURL:[NSURL URLWithString:path] resultBlock:^(ALAsset *asset) {
+            ALAssetRepresentation *rep = [asset defaultRepresentation];
+            Byte *buffer = (Byte*)malloc(rep.size);
+            NSUInteger buffered = [rep getBytes:buffer fromOffset:0.0 length:rep.size error:nil];
+            data = [NSData dataWithBytesNoCopy:buffer length:buffered freeWhenDone:YES];
+            dispatch_group_leave(group);
+        } failureBlock:^(NSError *error) {
+            dispatch_group_leave(group);
+        }];
+
+        dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+
+    } else if ([path hasPrefix:@"aiq-"]) {
+        return [NSData dataWithContentsOfURL:[NSURL URLWithString:path]];
+
+    } else {
+        if (![fileManager fileExistsAtPath:path]) {
+            NSLog(@"File not found: %@", path);
+        }
+
+        data = [fileManager contentsAtPath:path];
+    }
+
+    return data;
 }
 
 - (BOOL)hasUnsynchronizedDocumentsOfType:(NSString *)type {
